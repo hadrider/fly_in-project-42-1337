@@ -5,8 +5,8 @@ Includes PEP 257 docstrings and type safety.
 
 from __future__ import annotations
 from typing import Dict, Optional, Set, Tuple
-from models.zone import Zone
-from models.connection import Connection
+from .zone import Zone
+from .connection import Connection
 
 
 class Graph:
