@@ -1,8 +1,16 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Tuple
+
 
 @dataclass
-class Connection:#connection between two zones got zones names and some other data hh
-    zone1_name: str
-    zone2_name: str
+class Connection:
+    """Represents a bidirectional edge between two zones."""
+
+    a: str
+    b: str
     max_link_capacity: int = 1
-    current_usage: int = field(default=0, repr=False)
+
+    def key(self) -> Tuple[str, str]:
+        """Return a normalized key for this connection (order-independent)."""
+        return tuple(sorted((self.a, self.b)))  # type: ignore

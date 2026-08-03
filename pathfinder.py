@@ -6,17 +6,23 @@ from models import Graph
 
 def shortest_path(graph: Graph, start: str, end: str) -> Optional[List[str]]:
     """
-    Dijkstra using zone move cost as node-entering cost.
-    Path output is list of zone names from start to end.
-    """
+    Dijkstra shortest path from start to end using zone move costs.
 
+    Zone costs:
+      normal    -> 1 turn
+      priority  -> 1 turn (preferred on tie-break)
+      restricted-> 2 turns
+      blocked   -> skipped entirely
+
+    Returns list of zone names from start to end, or None if unreachable.
+    Complexity: O((V + E) log V)
+    """
     dist: Dict[str, float] = {z: float("inf") for z in graph.zones}
     prev: Dict[str, Optional[str]] = {z: None for z in graph.zones}
 
-    # (distance, priority_penalty, zone)
-    # priority zone gets slight bonus by using smaller penalty
+    # heap entries: (cost, priority_penalty, zone_name)
+    # priority zones get penalty=0 so they win tie-breaks
     pq: List[Tuple[float, int, str]] = []
-
     dist[start] = 0.0
     heapq.heappush(pq, (0.0, 0, start))
 
@@ -32,21 +38,18 @@ def shortest_path(graph: Graph, start: str, end: str) -> Optional[List[str]]:
             if zone_v.is_blocked():
                 continue
 
-            step = zone_v.move_cost()
-            nd = current_dist + step
-
-            # tiny tie-break: prefer priority zones
-            priority_penalty = 0 if zone_v.zone_type == "priority" else 1
+            nd = current_dist + zone_v.move_cost()
+            penalty = 0 if zone_v.zone_type == "priority" else 1
 
             if nd < dist[v]:
                 dist[v] = nd
                 prev[v] = u
-                heapq.heappush(pq, (nd, priority_penalty, v))
+                heapq.heappush(pq, (nd, penalty, v))
 
     if dist[end] == float("inf"):
         return None
 
-    # rebuild
+    # rebuild path by walking backwards through prev
     path: List[str] = []
     cur: Optional[str] = end
     while cur is not None:
