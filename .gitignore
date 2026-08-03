@@ -1,0 +1,14 @@
+# Python bytecode/cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# MyPy cache
+.mypy_cache/
+
+# Test maps, virtual environments, and test scripts
+venv/
+.venv/
+test_map.txt
+run_tests.py
