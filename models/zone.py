@@ -4,7 +4,7 @@ from typing import Optional
 
 ZONE_MOVE_COST = {
     "normal": 1,
-    "priority": 1,
+    "priority": 0.9,
     "restricted": 2,
     "blocked": 999999,
 }
