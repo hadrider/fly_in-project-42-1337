@@ -35,12 +35,14 @@ class Zone:
 
     name: str
     role: str
+    x: int = 0
+    y: int = 0
     zone_type: str = "normal"
     max_drones: int = 1
     color: Optional[str] = None
     current_drones: int = field(default=0, repr=False)
 
-    def move_cost(self) -> int:
+    def move_cost(self) -> float:
         """Return the turn cost to enter this zone."""
         return ZONE_MOVE_COST.get(self.zone_type, 1)
 
