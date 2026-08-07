@@ -110,6 +110,7 @@ The default output shows a colored terminal display for each turn:
 - Connection usage shown as `used/max` — red if at capacity
 - Final summary shows total turns, drones delivered, average turns per drone
 
+Visual mode now also prints the plain movement log line after each rendered turn.
 Use `--no-visual` to suppress colors and print only the log lines.
 
 ---
