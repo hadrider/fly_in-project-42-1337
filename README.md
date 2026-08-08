@@ -16,12 +16,12 @@ Given a network of zones and a fleet of drones, it finds the optimal path from a
 make install
 ```
 
-### Run with colored visual output (default)
+### Run with Pygame visual output (default)
 ```bash
 make run MAP=maps/map.txt
 ```
 
-### Run with log output only (no colors)
+### Run with log output only (no Pygame window)
 ```bash
 make run-no-visual MAP=maps/map.txt
 ```
@@ -71,7 +71,7 @@ connection: corridorA-goal
 
 **Metadata:**
 - `zone=<type>` — zone type (default: normal)
-- `color=<name>` — terminal display color
+- `color=<value>` — node color (`pygame.Color` formats like names, `#RRGGBB`, `#RRGGBBAA`, `(r,g,b)`)
 - `max_drones=<n>` — max drones allowed simultaneously (default: 1)
 - `max_link_capacity=<n>` — max drones on a connection per turn (default: 1)
 
@@ -103,15 +103,18 @@ Drones are processed in ID order. If a zone or connection is full, the drone wai
 
 ## Visual representation
 
-The default output shows a colored terminal display for each turn:
-- Zone names are colored by their `color` attribute
-- Drone labels (D1, D2...) shown in cyan inside their current zone
-- Occupancy shown as `[used/max]` — red if at capacity
-- Connection usage shown as `used/max` — red if at capacity
-- Final summary shows total turns, drones delivered, average turns per drone
+The default output uses a simple Pygame view for each turn:
+- White background
+- Circular nodes with centered labels
+- Directed edges with arrowheads
+- Per-node colors from map metadata when valid
+- Dynamic fallback colors for unspecified/invalid node colors
+- Contrast-aware label text (black/white) for readability
 
-Visual mode now also prints the plain movement log line after each rendered turn.
-Use `--no-visual` to suppress colors and print only the log lines.
+Visual mode also prints the plain movement log line after each rendered turn.
+Use `--no-visual` to disable the window and print only the log lines.
+
+If the `start_hub` zone is marked as `blocked`, simulation now raises an error immediately and does not start.
 
 ---
 
@@ -136,7 +139,7 @@ Drones that do not move are omitted from the line.
 - [Dijkstra's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
 - [Python dataclasses — docs.python.org](https://docs.python.org/3/library/dataclasses.html)
 - [Python heapq — docs.python.org](https://docs.python.org/3/library/heapq.html)
-- [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code)
+- [Pygame Color](https://www.pygame.org/docs/ref/color.html)
 
 **AI usage:**  
 AI was used to help explain Python concepts (references, dataclasses, heapq internals) and to review code structure. All code was written and understood by the author. AI was not used to generate code that was copy-pasted without understanding.

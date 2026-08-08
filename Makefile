@@ -1,7 +1,7 @@
 MAP ?= maps/map.txt
 
 install:
-	python3 -m pip install --user flake8 mypy
+	python3 -m pip install --user flake8 mypy pygame
 
 run:
 	python3 main.py $(MAP)

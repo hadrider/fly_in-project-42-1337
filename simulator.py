@@ -32,6 +32,10 @@ def run_simulation(
     start = graph.start_zone
     end = graph.end_zone
     assert start is not None and end is not None
+    if graph.zones[start].is_blocked():
+        raise ValueError(
+            f"Start hub '{start}' is blocked; simulation cannot start"
+        )
 
     candidate_paths = k_shortest_paths(graph, start, end, max(1, nb_drones))
     if not candidate_paths:
