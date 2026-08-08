@@ -22,9 +22,9 @@ ANSI_COLORS: dict[str, str] = {
 }
 
 
-def colorize(text: str, color: Optional[str]) -> str:
+def colorize(text: str, color: Optional[object]) -> str:
     """Wrap text in ANSI color codes if color is recognized."""
-    if color and color.lower() in ANSI_COLORS:
+    if isinstance(color, str) and color.lower() in ANSI_COLORS:
         return ANSI_COLORS[color.lower()] + text + ANSI_COLORS["reset"]
     return text
 
@@ -39,7 +39,7 @@ class Zone:
     y: int = 0
     zone_type: str = "normal"
     max_drones: int = 1
-    color: Optional[str] = None
+    color: Optional[object] = None
     current_drones: int = field(default=0, repr=False)
 
     def move_cost(self) -> float:
