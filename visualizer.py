@@ -1,229 +1,186 @@
-from __future__ import annotations
+"""Simple ANSI terminal visualization for the drone simulation."""
+
 import os
-from typing import Dict, List, Sequence, Tuple
+import time
 
-os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
-import pygame
-
-from models import Drone, Graph, Zone
-
-_BACKGROUND = pygame.Color("white")
-_EDGE_COLOR = pygame.Color("gray55")
-_TEXT_DARK = pygame.Color("black")
-_TEXT_LIGHT = pygame.Color("white")
+from colors import ANSI_COLORS, RESET
+from models import Drone
+from parsing import DroneMap
 
 
-def _to_color(raw: object) -> pygame.Color:
-    """Parse a color value using pygame.Color where possible."""
-    if isinstance(raw, pygame.Color):
-        return pygame.Color(raw)
-    if isinstance(raw, str):
-        value = raw.strip()
-        if value and value[0] in "([" and value[-1] in ")]":
-            parts = [p.strip() for p in value[1:-1].split(",") if p.strip()]
-            if len(parts) in (3, 4):
-                return pygame.Color(*[int(v) for v in parts])
-        return pygame.Color(value)
-    if isinstance(raw, Sequence) and not isinstance(raw, (str, bytes)):
-        values = list(raw)
-        if len(values) in (3, 4):
-            return pygame.Color(*[int(v) for v in values])
-    raise ValueError(f"Unsupported color value: {raw!r}")
+class TerminalVisualizer:
+    """Draw the drone map as a simple terminal graph."""
 
+    def __init__(self, drone_map: DroneMap) -> None:
+        """Store the map used by the visualizer."""
+        self.drone_map = drone_map
+        self.width = 7
+        self.height = 3
 
-def _fallback_color(zone_name: str) -> pygame.Color:
-    """Generate a stable readable fallback color from zone name."""
-    color = pygame.Color(0)
-    hue = sum(ord(ch) for ch in zone_name) % 360
-    color.hsva = (hue, 55, 85, 100)
-    return color
+    def show(self, drones: list[Drone], turn: int) -> None:
+        """Clear the terminal and draw the current simulation state."""
+        self._clear_screen()
+        print(f"Turn {turn}")
+        print()
+        grid = self._create_grid()
+        self._draw_connections(grid)
+        self._draw_zones(grid, drones)
+        self._print_grid(grid)
 
+    def _create_grid(self) -> list[list[str]]:
+        """Create an empty character grid."""
+        min_x, max_x, min_y, max_y = self._map_bounds()
+        width = (max_x - min_x) * self.width + 1
+        height = (max_y - min_y) * self.height + 1
+        grid: list[list[str]] = []
 
-def _zone_color(zone: Zone) -> pygame.Color:
-    """Resolve a zone fill color from data or deterministic fallback."""
-    try:
-        if zone.color is not None:
-            return _to_color(zone.color)
-    except (ValueError, TypeError):
-        pass
-    return _fallback_color(zone.name)
+        for _ in range(height):
+            row = [" "] * width
+            grid.append(row)
 
+        return grid
 
-def _label_color(fill: pygame.Color) -> pygame.Color:
-    """Pick black/white text for best contrast against fill color."""
-    luminance = (0.299 * fill.r) + (0.587 * fill.g) + (0.114 * fill.b)
-    return _TEXT_DARK if luminance > 160 else _TEXT_LIGHT
+    def _map_bounds(self) -> tuple[int, int, int, int]:
+        """Return the smallest rectangle containing every zone."""
+        zones = list(self.drone_map.zones.values())
+        min_x = min(zone.x for zone in zones)
+        max_x = max(zone.x for zone in zones)
+        min_y = min(zone.y for zone in zones)
+        max_y = max(zone.y for zone in zones)
+        return min_x, max_x, min_y, max_y
 
+    def _position(self, x: int, y: int) -> tuple[int, int]:
+        """Convert map coordinates into terminal coordinates."""
+        min_x, _, _, max_y = self._map_bounds()
+        column = (x - min_x) * self.width
+        row = (max_y - y) * self.height
+        return row, column
 
-class _PygameVisualizer:
-    def __init__(self, graph: Graph) -> None:
-        pygame.display.init()
-        if not pygame.font.get_init():
-            pygame.font.init()
-        self.graph = graph
-        self.node_radius = 24
-        self.margin = 60
-        self.scale = 80
-        self.tick_ms = 350
-        self.positions = self._compute_positions()
-        width, height = self._window_size()
-        self.screen = pygame.display.set_mode((width, height))
-        pygame.display.set_caption("Fly-in Simulation")
-        self.font = pygame.font.SysFont(None, 20)
-        self.small_font = pygame.font.SysFont(None, 16)
-        self.clock = pygame.time.Clock()
-        self.closed = False
+    def _draw_connections(self, grid: list[list[str]]) -> None:
+        """Draw every connection using simple terminal characters."""
+        for connection in self.drone_map.connections:
+            zone_a = self.drone_map.zones[connection.zone_a]
+            zone_b = self.drone_map.zones[connection.zone_b]
+            self._draw_connection(grid, zone_a.x, zone_a.y, zone_b.x, zone_b.y)
 
-    def _compute_positions(self) -> Dict[str, Tuple[int, int]]:
-        xs = [z.x for z in self.graph.zones.values()]
-        ys = [z.y for z in self.graph.zones.values()]
-        min_x, min_y = min(xs), min(ys)
-        positions: Dict[str, Tuple[int, int]] = {}
-        for name, zone in self.graph.zones.items():
-            px = self.margin + (zone.x - min_x) * self.scale
-            py = self.margin + (zone.y - min_y) * self.scale
-            positions[name] = (px, py)
-        return positions
-
-    def _window_size(self) -> Tuple[int, int]:
-        points = list(self.positions.values())
-        max_x = max(x for x, _ in points) + self.margin
-        max_y = max(y for _, y in points) + self.margin
-        return max(max_x, 640), max(max_y, 480)
-
-    def _process_events(self) -> None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.closed = True
-
-    def _draw_arrow(self, src: Tuple[int, int], dst: Tuple[int, int]) -> None:
-        if src == dst:
-            return
-        dx = dst[0] - src[0]
-        dy = dst[1] - src[1]
-        dist = (dx * dx + dy * dy) ** 0.5
-        if dist == 0:
-            return
-        ux = dx / dist
-        uy = dy / dist
-        sx = src[0] + ux * self.node_radius
-        sy = src[1] + uy * self.node_radius
-        ex = dst[0] - ux * self.node_radius
-        ey = dst[1] - uy * self.node_radius
-        perp_x = -uy * 4
-        perp_y = ux * 4
-        start = (sx + perp_x, sy + perp_y)
-        end = (ex + perp_x, ey + perp_y)
-        pygame.draw.line(self.screen, _EDGE_COLOR, start, end, 2)
-
-        arrow_len = 10
-        arrow_w = 6
-        left = (
-            end[0] - ux * arrow_len + uy * arrow_w,
-            end[1] - uy * arrow_len - ux * arrow_w,
-        )
-        right = (
-            end[0] - ux * arrow_len - uy * arrow_w,
-            end[1] - uy * arrow_len + ux * arrow_w,
-        )
-        pygame.draw.polygon(self.screen, _EDGE_COLOR, [end, left, right])
-
-    def draw_turn(
+    def _draw_connection(
         self,
-        turn: int,
-        drones: List[Drone],
-        zone_occupancy: Dict[str, int],
+        grid: list[list[str]],
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
     ) -> None:
-        self._process_events()
-        if self.closed:
-            return
+        """Draw one horizontal, vertical, or diagonal connection."""
+        row1, col1 = self._position(x1, y1)
+        row2, col2 = self._position(x2, y2)
 
-        self.screen.fill(_BACKGROUND)
+        if row1 == row2:
+            self._draw_horizontal(grid, row1, col1, col2)
+        elif col1 == col2:
+            self._draw_vertical(grid, row1, row2, col1)
+        else:
+            self._draw_diagonal(grid, row1, col1, row2, col2)
 
-        for conn in self.graph.connections.values():
-            a = self.positions[conn.a]
-            b = self.positions[conn.b]
-            self._draw_arrow(a, b)
-            self._draw_arrow(b, a)
+    def _draw_horizontal(
+        self,
+        grid: list[list[str]],
+        row: int,
+        col1: int,
+        col2: int,
+    ) -> None:
+        """Draw a horizontal connection."""
+        start = min(col1, col2)
+        end = max(col1, col2)
 
-        for name, zone in self.graph.zones.items():
-            center = self.positions[name]
-            fill = _zone_color(zone)
-            pygame.draw.circle(self.screen, fill, center, self.node_radius)
-            pygame.draw.circle(
-                self.screen, _TEXT_DARK, center, self.node_radius, 2
-            )
+        for column in range(start + 1, end):
+            grid[row][column] = "-"
 
-            label = self.font.render(name, True, _label_color(fill))
-            label_rect = label.get_rect(center=center)
-            self.screen.blit(label, label_rect)
+    def _draw_vertical(
+        self,
+        grid: list[list[str]],
+        row1: int,
+        row2: int,
+        column: int,
+    ) -> None:
+        """Draw a vertical connection."""
+        start = min(row1, row2)
+        end = max(row1, row2)
 
-            used = zone_occupancy.get(name, 0)
-            drones_here = [
-                d.label() for d in drones
-                if (
-                    d.current_zone == name
-                    and not d.finished
-                    and d.traveling_to is None
-                )
-            ]
-            info_text = f"{used}/{zone.max_drones}"
-            if drones_here:
-                info_text += " " + ",".join(drones_here)
-            info = self.small_font.render(info_text, True, _TEXT_DARK)
-            info_rect = info.get_rect(
-                midtop=(center[0], center[1] + self.node_radius + 4)
-            )
-            self.screen.blit(info, info_rect)
+        for row in range(start + 1, end):
+            grid[row][column] = "|"
 
-        title = self.font.render(f"Turn {turn}", True, _TEXT_DARK)
-        self.screen.blit(title, (16, 12))
-        pygame.display.flip()
-        pygame.time.wait(self.tick_ms)
-        self.clock.tick(60)
+    def _draw_diagonal(
+        self,
+        grid: list[list[str]],
+        row1: int,
+        col1: int,
+        row2: int,
+        col2: int,
+    ) -> None:
+        """Draw a diagonal connection with slash characters."""
+        step_row = 1 if row2 > row1 else -1
+        step_col = 1 if col2 > col1 else -1
+        row = row1 + step_row
+        column = col1 + step_col
 
-    def draw_summary(self, total_turns: int, nb_drones: int) -> None:
-        self._process_events()
-        if self.closed:
-            return
+        while row != row2 and column != col2:
+            if step_row == step_col:
+                grid[row][column] = "\\"
+            else:
+                grid[row][column] = "/"
+            row += step_row
+            column += step_col
 
-        summary = self.font.render(
-            f"Complete: {nb_drones} drones in {total_turns} turns",
-            True,
-            _TEXT_DARK,
-        )
-        rect = summary.get_rect()
-        rect.bottomleft = (16, self.screen.get_height() - 16)
-        self.screen.blit(summary, rect)
-        pygame.display.flip()
+    def _draw_zones(
+        self,
+        grid: list[list[str]],
+        drones: list[Drone],
+    ) -> None:
+        """Draw colored dots for zones and drones."""
+        for zone in self.drone_map.zones.values():
+            row, column = self._position(zone.x, zone.y)
+            drone = self._drone_at_zone(zone.name, drones)
 
+            if drone is not None:
+                text = f"D{drone.drone_id}"
+                self._put_text(grid, row, column, text, zone.color)
+            else:
+                self._put_text(grid, row, column, ".", zone.color)
 
-_VISUALIZER: _PygameVisualizer | None = None
+    def _drone_at_zone(
+        self,
+        zone_name: str,
+        drones: list[Drone],
+    ) -> Drone | None:
+        """Return the first drone currently visible at a zone."""
+        for drone in drones:
+            if drone.current_position == zone_name:
+                return drone
+        return None
 
+    def _put_text(
+        self,
+        grid: list[list[str]],
+        row: int,
+        column: int,
+        text: str,
+        color: str | None,
+    ) -> None:
+        """Put colored text into the terminal grid."""
+        if color in ANSI_COLORS:
+            colored = f"{ANSI_COLORS[color]}{text}{RESET}"
+        else:
+            colored = text
 
-def _get_visualizer(graph: Graph) -> _PygameVisualizer:
-    global _VISUALIZER
-    if _VISUALIZER is None:
-        _VISUALIZER = _PygameVisualizer(graph)
-    return _VISUALIZER
+        if column < len(grid[row]):
+            grid[row][column] = colored
 
+    def _print_grid(self, grid: list[list[str]]) -> None:
+        """Print every row of the terminal grid."""
+        for row in grid:
+            print("".join(row).rstrip())
 
-def render_turn(
-    turn: int,
-    graph: Graph,
-    drones: List[Drone],
-    moved_tokens: List[str],
-    zone_occupancy: Dict[str, int],
-    link_usage: Dict[Tuple[str, str], int],
-) -> None:
-    del moved_tokens, link_usage
-    _get_visualizer(graph).draw_turn(turn, drones, zone_occupancy)
-
-
-def render_summary(total_turns: int, nb_drones: int) -> None:
-    global _VISUALIZER
-    if _VISUALIZER is None:
-        return
-    _VISUALIZER.draw_summary(total_turns, nb_drones)
-    pygame.quit()
-    _VISUALIZER = None
+    def _clear_screen(self) -> None:
+        """Clear the terminal using ANSI escape sequences."""
+        print("\033[2J\033[H", end="")

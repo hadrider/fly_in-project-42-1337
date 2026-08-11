@@ -1,65 +1,93 @@
-from __future__ import annotations
-import heapq
-from typing import List, Optional, Tuple
-from models import Graph
+"""Manual Dijkstra path finding for the drone map."""
+
+from models import ZoneType
+from parsing import DroneMap
 
 
-def k_shortest_paths(
-    graph: Graph,
-    start: str,
-    end: str,
-    k: int,
-) -> List[List[str]]:
-    """
-    Return up to k shortest simple paths from start to end.
+class Pathfinder:
+    """Find the lowest-cost route using a dictionary adjacency list."""
 
-    Paths are ordered by total move cost, with a small priority-zone tie-break.
-    """
-    if k <= 0:
-        return []
+    def __init__(self, drone_map: DroneMap) -> None:
+        """Build the adjacency list from the map connections."""
+        self.drone_map = drone_map
+        self.adjacency: dict[str, list[str]] = {}
+        self._build_adjacency()
 
-    # heap entries: (cost, penalty, path_as_tuple)
-    pq: List[Tuple[float, int, Tuple[str, ...]]] = [(0.0, 0, (start,))]
-    out: List[List[str]] = []
-    expansions = 0
-    max_expansions = 10000
+    def _build_adjacency(self) -> None:
+        """Add both directions of every connection."""
+        for name in self.drone_map.zones:
+            self.adjacency[name] = []
+        for connection in self.drone_map.connections:
+            self.adjacency[connection.zone_a].append(connection.zone_b)
+            self.adjacency[connection.zone_b].append(connection.zone_a)
 
-    while pq and len(out) < k and expansions < max_expansions:
-        cost, penalty, path_tuple = heapq.heappop(pq)
-        expansions += 1
-        u = path_tuple[-1]
+    def find_path(self, start: str, end: str) -> list[str]:
+        """Return the cheapest path from start to end."""
+        distances: dict[str, int] = {}
+        previous: dict[str, str | None] = {}
+        unvisited: set[str] = set(self.adjacency)
 
-        if u == end:
-            out.append(list(path_tuple))
-            continue
+        for name in self.adjacency:
+            distances[name] = 10**12
+            previous[name] = None
+        distances[start] = 0
 
-        for v in graph.adjacency[u]:
-            if v in path_tuple:
+        while unvisited:
+            current = self._closest(unvisited, distances)
+            if current is None:
+                break
+            unvisited.remove(current)
+            if current == end:
+                break
+            self._relax_neighbors(current, unvisited, distances, previous)
+
+        return self._build_path(start, end, distances, previous)
+
+    def _closest(
+        self, unvisited: set[str], distances: dict[str, int]
+    ) -> str | None:
+        """Return the unvisited zone with the smallest known distance."""
+        best_zone: str | None = None
+        best_distance = 10**12
+        for zone in unvisited:
+            if distances[zone] < best_distance:
+                best_zone = zone
+                best_distance = distances[zone]
+        return best_zone
+
+    def _relax_neighbors(
+        self,
+        current: str,
+        unvisited: set[str],
+        distances: dict[str, int],
+        previous: dict[str, str | None],
+    ) -> None:
+        """Try to improve each reachable neighbor's distance."""
+        for neighbor in self.adjacency[current]:
+            if neighbor not in unvisited:
                 continue
-            zone_v = graph.zones[v]
-            if zone_v.is_blocked():
+            zone = self.drone_map.zones[neighbor]
+            if zone.zone_type == ZoneType.BLOCKED:
                 continue
-            nd = cost + zone_v.move_cost()
-            np = penalty + (0 if zone_v.zone_type == "priority" else 1)
-            heapq.heappush(pq, (nd, np, path_tuple + (v,)))
+            new_distance = distances[current] + zone.entry_cost()
+            if new_distance < distances[neighbor]:
+                distances[neighbor] = new_distance
+                previous[neighbor] = current
 
-    return out
-
-
-def shortest_path(graph: Graph, start: str, end: str) -> Optional[List[str]]:
-    """
-    Dijkstra shortest path from start to end using zone move costs.
-
-    Zone costs:
-      normal    -> 1 turn
-      priority  -> 1 turn (preferred on tie-break)
-      restricted-> 2 turns
-      blocked   -> skipped entirely
-
-    Returns list of zone names from start to end, or None if unreachable.
-    Complexity: O((V + E) log V)
-    """
-    paths = k_shortest_paths(graph, start, end, 1)
-    if not paths:
-        return None
-    return paths[0]
+    def _build_path(
+        self,
+        start: str,
+        end: str,
+        distances: dict[str, int],
+        previous: dict[str, str | None],
+    ) -> list[str]:
+        """Reconstruct the path from the previous-zone table."""
+        if distances[end] == 10**12:
+            raise ValueError(f"No path from '{start}' to '{end}'")
+        path: list[str] = []
+        current: str | None = end
+        while current is not None:
+            path.append(current)
+            current = previous[current]
+        path.reverse()
+        return path

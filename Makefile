@@ -1,31 +1,19 @@
-MAP ?= maps/map.txt
+PYTHON = python3.10
+MAIN = main.py
+MAP = maps/map.txt
 
 install:
-	python3 -m pip install --user flake8 mypy pygame
+	$(PYTHON) -m pip install -r requirements.txt
 
 run:
-	python3 main.py $(MAP)
-
-run-no-visual:
-	python3 main.py --no-visual $(MAP)
-
-run-capacity:
-	python3 main.py --capacity-info $(MAP)
+	$(PYTHON) $(MAIN) $(MAP)
 
 debug:
-	python3 -m pdb main.py $(MAP)
-
-lint:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
-		--disallow-untyped-defs --check-untyped-defs
-
-lint-strict:
-	flake8 .
-	mypy . --strict
+	$(PYTHON) -m pdb $(MAIN) $(MAP)
 
 clean:
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
 
-.PHONY: install run run-no-visual run-capacity debug lint lint-strict clean
+lint:
+	flake8 *.py

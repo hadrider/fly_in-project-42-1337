@@ -1,145 +1,64 @@
-*This project has been created as part of the 42 curriculum by hadrider.*
+# Fly-in: Drone Routing Simulation
 
----
+A beginner-friendly Python 3.10+ implementation of the Fly-in drone routing project.
 
-## Description
+## Requirements
 
-**Fly-in** is a drone routing simulation system.  
-Given a network of zones and a fleet of drones, it finds the optimal path from a start hub to an end hub and simulates all drones moving turn by turn, respecting zone capacities, connection capacities, and movement costs.
+- Python 3.10+
+- `flake8`
+- `mypy`
 
----
+## Project structure
 
-## Instructions
+```text
+fly_in/
+├── main.py
+├── models.py
+├── parser.py
+├── pathfinder.py
+├── simulator.py
+├── colors.py
+├── Makefile
+├── requirements.txt
+├── maps/
+│   └── sample_map.txt
+└── README.md
+```
 
-### Install dependencies
+## Run
+
 ```bash
 make install
+make run
 ```
 
-### Run with Pygame visual output (default)
+The default map is `maps/sample_map.txt`.
+
+You can also run directly:
+
 ```bash
-make run MAP=maps/map.txt
+python3 main.py maps/sample_map.txt
 ```
 
-### Run with log output only (no Pygame window)
-```bash
-make run-no-visual MAP=maps/map.txt
-```
+## Other Make targets
 
-### Run with capacity info appended to each line
 ```bash
-make run-capacity MAP=maps/map.txt
-```
-
-### Debug mode
-```bash
-make debug MAP=maps/map.txt
-```
-
-### Lint
-```bash
+make debug
 make lint
-```
-
-### Clean caches
-```bash
+make lint-strict
 make clean
 ```
 
----
+`make debug` runs Python's built-in debugger.
 
-## Map file format
+## Routing rules
 
-```
-nb_drones: 3
-
-start_hub: hub 0 0 [color=green]
-end_hub: goal 10 10 [color=yellow]
-hub: roof1 3 4 [zone=restricted color=red]
-hub: corridorA 4 3 [zone=priority color=green max_drones=2]
-
-connection: hub-roof1
-connection: roof1-corridorA [max_link_capacity=2]
-connection: corridorA-goal
-```
-
-**Zone types:**
-- `normal` — 1 turn to enter (default)
-- `restricted` — 2 turns to enter, drone is in transit during first turn
-- `priority` — 1 turn, preferred in pathfinding tie-breaks
-- `blocked` — cannot be entered
-
-**Metadata:**
-- `zone=<type>` — zone type (default: normal)
-- `color=<value>` — node color (`pygame.Color` formats like names, `#RRGGBB`, `#RRGGBBAA`, `(r,g,b)`)
-- `max_drones=<n>` — max drones allowed simultaneously (default: 1)
-- `max_link_capacity=<n>` — max drones on a connection per turn (default: 1)
-
----
-
-## Algorithm
-
-### Pathfinding — Dijkstra
-- Uses zone move cost as edge weight
-- Skips blocked zones entirely
-- Priority zones win tie-breaks via a penalty value in the heap tuple
-- Complexity: O((V + E) log V)
-- No external graph libraries used — implemented from scratch
-
-### Simulation — turn-based state machine
-Each turn runs in 4 phases:
-1. **Snapshot** — record current occupancy before any moves
-2. **Validate** — check zone capacity and connection capacity for each intended move
-3. **Apply** — execute all approved moves simultaneously
-4. **Output** — format and display the turn
-
-**Restricted zone transit:**  
-Moving into a restricted zone takes 2 turns. On turn 1 the drone occupies the connection (IN_TRANSIT). On turn 2 it must arrive — it cannot wait on the connection.
-
-**Conflict resolution:**  
-Drones are processed in ID order. If a zone or connection is full, the drone waits (stays in place) until the next turn.
-
----
-
-## Visual representation
-
-The default output uses a simple Pygame view for each turn:
-- White background
-- Circular nodes with centered labels
-- Directed edges with arrowheads
-- Per-node colors from map metadata when valid
-- Dynamic fallback colors for unspecified/invalid node colors
-- Contrast-aware label text (black/white) for readability
-
-Visual mode also prints the plain movement log line after each rendered turn.
-Use `--no-visual` to disable the window and print only the log lines.
-
-If the `start_hub` zone is marked as `blocked`, simulation now raises an error immediately and does not start.
-
----
-
-## Output format
-
-Each turn outputs one line listing all drone movements:
-```
-D1-roof2
-D1-corridorA D2-roof2
-D1-goal D2-corridorA D3-roof2
-D2-goal D3-corridorA
-D3-goal
-```
-
-For drones in transit toward a restricted zone: `D1-hub-roof1`  
-Drones that do not move are omitted from the line.
-
----
-
-## Resources
-
-- [Dijkstra's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
-- [Python dataclasses — docs.python.org](https://docs.python.org/3/library/dataclasses.html)
-- [Python heapq — docs.python.org](https://docs.python.org/3/library/heapq.html)
-- [Pygame Color](https://www.pygame.org/docs/ref/color.html)
-
-**AI usage:**  
-AI was used to help explain Python concepts (references, dataclasses, heapq internals) and to review code structure. All code was written and understood by the author. AI was not used to generate code that was copy-pasted without understanding.
+- Normal zone: entry cost 1.
+- Priority zone: entry cost 1.
+- Restricted zone: entry cost 2.
+- Blocked zone: unreachable.
+- A zone's `max_drones` limits how many drones may occupy it.
+- A connection's `max_link_capacity` limits how many drones may use it during a turn.
+- A drone entering a restricted zone spends two turns travelling into it.
+- A restricted-zone move cannot be paused halfway through.
+- Start and end zones ignore their `max_drones` setting.
