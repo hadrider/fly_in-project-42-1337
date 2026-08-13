@@ -2,7 +2,7 @@
 
 from models import Connection, Drone, Zone, ZoneType
 from parsing import DroneMap
-from visualizer import TerminalVisualizer
+from visualizer import PygameVisualizer
 from colors import color_text
 import time
 
@@ -16,7 +16,8 @@ class Simulator:
         self.drones = self._create_drones(paths)
         self.turn = 0
         self.link_usage: dict[tuple[str, str], int] = {}
-        self.visualizer = TerminalVisualizer(drone_map)
+        self.visualizer = PygameVisualizer(drone_map)
+
 
     def _create_drones(self, paths: list[list[str]]) -> list[Drone]:
         """Create one drone for each calculated path."""
@@ -36,6 +37,11 @@ class Simulator:
             self._move_waiting_drones()
             self.visualizer.show(self.drones, self.turn)
             time.sleep(0.5)
+
+            self.visualizer.draw(self.drones)
+
+            if not self.visualizer.running:
+                break
 
     def _finish_in_flight_drones(self) -> None:
         """Complete restricted moves that started on an earlier turn."""
