@@ -19,7 +19,7 @@ class DroneMap:
         self.start_name = ""
         self.end_name = ""
         self.nb_drones = 0
-        self._nb_drones_parsed = False
+        self._nb_drones_parsed = False  # false cuz we need to see nb of droens only apperad once
 
     def from_file(self, filename: str) -> "DroneMap":
         """Read a map file and return a validated DroneMap."""
@@ -27,9 +27,9 @@ class DroneMap:
             lines = f.read().splitlines()
 
         for i, raw in enumerate(lines, 1):
-            line = raw.split("#", 1)[0].strip()
+            line = raw.split("#", 1)[0].strip()#strip the line fom comments an take what comes befor the #
             if not line:
-                continue
+                continue#skip empty lines 
             self._parse_line(line, i)
 
         self._validate_map()
@@ -55,7 +55,7 @@ class DroneMap:
         try:
             count = int(line.split(":", 1)[1].strip())
         except ValueError:
-            self._error(num, "nb_drones must be an integer")
+            self._error(num, "nb_drones must be an integer")#parse nub of drones line and take number chack if its a num or no 
 
         if count <= 0:
             self._error(num, "nb_drones must be greater than zero")
@@ -79,9 +79,6 @@ class DroneMap:
             bracket = value.rfind("[")
             if bracket == -1:
                 self._error(num, "invalid metadata")
-
-            if value[bracket+1+len(value[bracket+1:-1])+1:].strip():
-                self._error(num, "invalid structure after metadata")
 
             metadata = value[bracket+1:-1].strip()
             value = value[:bracket].strip()
@@ -110,9 +107,6 @@ class DroneMap:
         self.coords.append((x, y))
 
         zone_type, color, max_drones = ZoneType.NORMAL, None, 1
-
-        if not metadata:
-            self._error(num, "empty metadata")
 
         if metadata:
             for item in metadata.split():
@@ -170,8 +164,6 @@ class DroneMap:
             bracket = value.rfind("[")
             if bracket == -1:
                 self._error(num, "invalid metadata")
-            if value[bracket+1+len(value[bracket+1:-1])+1:].strip():
-                self._error(num, "invalid structure after metadata")
             metadata = value[bracket+1:-1].strip()
             value = value[:bracket].strip()
             if not value:
@@ -219,8 +211,6 @@ class DroneMap:
         """Check required fields."""
         if not self._nb_drones_parsed:
             raise MapParseError("Missing nb_drones")
-        if self.nb_drones <= 0:
-            raise MapParseError("Invalid nb_drones (must be positive)")
         if not self.start_name:
             raise MapParseError("Missing start_hub")
         if not self.end_name:

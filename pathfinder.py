@@ -18,7 +18,7 @@ class Pathfinder:
         for name in self.drone_map.zones:
             self.adjacency[name] = []
 
-        for connection in self.drone_map.connections:
+        for connection in self.drone_map.connections:#append the zones to eachother so each one is connected to another a to b and b to a 
             self.adjacency[connection.zone_a].append(connection.zone_b)
             self.adjacency[connection.zone_b].append(connection.zone_a)
 
@@ -67,11 +67,8 @@ class Pathfinder:
 
         return distances
 
-    def _closest(
-        self,
-        unvisited: set[str],
-        distances: dict[str, float],
-    ) -> str | None:
+    def _closest(self, unvisited: set[str], distances: dict[str, float]
+                 ) -> str | None:
         """Return the unvisited zone with the smallest cost."""
         best_zone = None
         best_distance = float("inf")
@@ -83,44 +80,8 @@ class Pathfinder:
 
         return best_zone
 
-    def find_path(self, start: str, end: str) -> list[str]:
-        """Return one cheapest path from start to end."""
-        distances = self._shortest_distances(end)
-
-        if distances[start] == float("inf"):
-            raise ValueError(f"No path from '{start}' to '{end}'")
-
-        path = [start]
-        current = start
-
-        while current != end:
-            candidates = []
-
-            for neighbor in self.adjacency[current]:
-                if self._zone_cost(neighbor) == float("inf"):
-                    continue
-
-                cost = self._zone_cost(neighbor)
-                total = cost + distances[neighbor]
-
-                if total == distances[current]:
-                    candidates.append(neighbor)
-
-            if not candidates:
-                raise ValueError(f"Could not reconstruct path from "
-                                 f"'{start}' to '{end}'")
-
-            current = candidates[0]
-            path.append(current)
-
-        return path
-
-    def find_paths(
-        self,
-        start: str,
-        end: str,
-        number_of_paths: int,
-    ) -> list[list[str]]:
+    def find_paths(self, start: str, end: str, number_of_paths: int
+                   ) -> list[list[str]]:
         """Return several cheapest paths."""
         distances = self._shortest_distances(end)
 
@@ -134,15 +95,9 @@ class Pathfinder:
 
         return paths
 
-    def _collect_paths(
-        self,
-        current: str,
-        end: str,
-        distances: dict[str, float],
-        path: list[str],
-        paths: list[list[str]],
-        limit: int,
-    ) -> None:
+    def _collect_paths(self, current: str, end: str,
+                       distances: dict[str, float], path: list[str],
+                       paths: list[list[str]], limit: int) -> None:
         """Collect cheapest paths recursively."""
         if len(paths) >= limit:
             return

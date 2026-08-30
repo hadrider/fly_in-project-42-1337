@@ -1,6 +1,5 @@
 """Core data classes used by the drone simulation."""
 
-from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -13,17 +12,20 @@ class ZoneType(Enum):
     PRIORITY = "priority"
 
 
-@dataclass
 class Zone:
     """Store the data and occupancy limit for one zone."""
 
-    name: str
-    x: int
-    y: int
-    zone_type: ZoneType = ZoneType.NORMAL
-    color: str | None = None
-    max_drones: int = 1
-    drones: int = field(default=0, init=False)
+    def __init__(self, name: str, x: int, y: int,
+                 zone_type: ZoneType | None = None,
+                 color: str | None = None, max_drones: int = 1) -> None:
+        self.name = name
+        self.x = x
+        self.y = y
+        self.zone_type = (zone_type if zone_type is not None
+                          else ZoneType.NORMAL)
+        self.color = color
+        self.max_drones = max_drones
+        self.drones = 0
 
     def is_blocked(self) -> bool:
         """Return True when drones cannot enter this zone."""
@@ -40,26 +42,28 @@ class Zone:
         return self.drones < self.max_drones
 
 
-@dataclass(frozen=True)
 class Connection:
     """Store an undirected connection between two zones."""
 
-    zone_a: str
-    zone_b: str
-    max_link_capacity: int = 1
+    def __init__(self, zone_a: str, zone_b: str, max_link_capacity: int = 1
+                 ) -> None:
+        self.zone_a = zone_a
+        self.zone_b = zone_b
+        self.max_link_capacity = max_link_capacity
 
 
-@dataclass
 class Drone:
     """Store one drone's current route and movement state."""
 
-    drone_id: int
-    current_position: str
-    path: list[str]
-    status: str = "waiting"
-    path_index: int = 0
-    remaining_turns: int = 0
-    destination: str | None = None
+    def __init__(self, drone_id: int, current_position: str, path: list[str]
+                 ) -> None:
+        self.drone_id = drone_id
+        self.current_position = current_position
+        self.path = path
+        self.status = "waiting"
+        self.path_index = 0
+        self.remaining_turns = 0
+        self.destination: str | None = None
 
     def is_finished(self) -> bool:
         """Return True when this drone has reached the end."""

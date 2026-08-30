@@ -69,10 +69,8 @@ class Simulator:
 
         return moves
 
-    def _move_waiting_drones(
-        self,
-        moved_drones: set[int],
-    ) -> list[tuple[int, str]]:
+    def _move_waiting_drones(self, moved_drones: set[int]
+                             ) -> list[tuple[int, str]]:
         """Move waiting drones once during this turn."""
         moves: list[tuple[int, str]] = []
 
@@ -172,11 +170,7 @@ class Simulator:
 
         self.link_usage[key] = self.link_usage.get(key, 0) + 1
 
-    def _find_connection(
-        self,
-        zone_a: str,
-        zone_b: str,
-    ) -> Connection | Any:
+    def _find_connection(self, zone_a: str, zone_b: str) -> Connection | Any:
         """Find the connection between two zones."""
         for connection in self.drone_map.connections:
             direct = (connection.zone_a == zone_a
@@ -190,11 +184,7 @@ class Simulator:
 
         raise ValueError(f"No connection between '{zone_a}' and '{zone_b}'")
 
-    def _link_key(
-        self,
-        zone_a: str,
-        zone_b: str,
-    ) -> tuple[str, str]:
+    def _link_key(self, zone_a: str, zone_b: str) -> tuple[str, str]:
         """Return a stable key for an undirected connection."""
         if zone_a < zone_b:
             return zone_a, zone_b
@@ -223,9 +213,6 @@ class Simulator:
 
         return self.drone_map.end_name
 
-    def _print_turn(
-        self,
-        moves: list[tuple[int, str]],
-    ) -> None:
+    def _print_turn(self, moves: list[tuple[int, str]]) -> None:
         """Print only drones that moved this turn."""
         print(f"Turn {self.turn}: " + " ".join(text for _, text in moves))

@@ -17,7 +17,7 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 lint:
-	flake8 .
-	mypy . --warn-return-any \
+	$(PYTHON) -m flake8 .
+	$(PYTHON) -m mypy . --warn-return-any \
 	--warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs \
 	--check-untyped-defs

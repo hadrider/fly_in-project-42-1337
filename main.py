@@ -1,10 +1,10 @@
 """Command-line entry point for the Fly-in simulation."""
 
 try:
+    import sys
     from parsing import DroneMap, MapParseError
     from pathfinder import Pathfinder
     from simulator import Simulator
-    import sys
 
 except Exception as error:
     print(f"\nError: {error}")
@@ -21,11 +21,6 @@ class PathBuilder:
 
     def build(self) -> list[list[str]]:
         """Find two shortest paths and assign them to the drones."""
-        if self.drone_map.start_name is None:
-            raise ValueError("Map has no start zone")
-
-        if self.drone_map.end_name is None:
-            raise ValueError("Map has no end zone")
 
         paths = self.pathfinder.find_paths(self.drone_map.start_name,
                                            self.drone_map.end_name, 2)
@@ -49,5 +44,5 @@ if __name__ == "__main__":
 
         Simulator(drone_map, paths).run()
 
-    except (OSError, MapParseError, KeyboardInterrupt) as error:
+    except (Exception, OSError, MapParseError, KeyboardInterrupt) as error:
         print(f"\nError: {error}")
