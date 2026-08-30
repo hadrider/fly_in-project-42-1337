@@ -70,9 +70,6 @@ class PygameVisualizer:
         """
         start = self.drone_map.start_name
 
-        if start is None:
-            return
-
         self.moves = moves
         self.positions = {
             drone_id: start
@@ -304,19 +301,12 @@ class PygameVisualizer:
         if color is None:
             return "silver"
 
-        if color == "none":
-            return "silver"
-
         if color == "rainbow":
             return "red"
 
         return color
 
-    def _text(
-        self,
-        text: str,
-        position: tuple[float, float],
-    ) -> None:
+    def _text(self, text: str, position: tuple[float, float]) -> None:
         """Draw centered zone text."""
         surface = self.font.render(text, True, "black")
         rect = surface.get_rect(center=position)

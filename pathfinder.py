@@ -110,10 +110,9 @@ class Pathfinder:
             if neighbor in path:
                 continue
 
-            if self._zone_cost(neighbor) == float("inf"):
-                continue
-
             cost = self._zone_cost(neighbor)
+            if cost == float("inf"):
+                continue
 
             if cost + distances[neighbor] != distances[current]:
                 continue

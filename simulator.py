@@ -81,9 +81,6 @@ class Simulator:
             if drone.status != "waiting":
                 continue
 
-            if drone.is_finished():
-                continue
-
             move = self._try_move(drone)
 
             if move is not None:
@@ -129,13 +126,6 @@ class Simulator:
             drone.status = "in_flight"
             next_zone.drones += 1
             drone.remaining_turns = 1
-            return
-
-        self._arrive(drone)
-
-    def _arrive(self, drone: Drone) -> None:
-        """Arrive at the drone's destination."""
-        if drone.destination is None:
             return
 
         drone.current_position = drone.destination
@@ -201,9 +191,6 @@ class Simulator:
 
     def _start_zone(self) -> Zone | Any:
         """Return the start zone."""
-        if self.drone_map.start_name is None:
-            raise ValueError("Map has no start zone")
-
         return self.drone_map.zones[self.drone_map.start_name]
 
     def _end_name(self) -> str:

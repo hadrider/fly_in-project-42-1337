@@ -21,21 +21,10 @@ class Zone:
         self.name = name
         self.x = x
         self.y = y
-        self.zone_type = (zone_type if zone_type is not None
-                          else ZoneType.NORMAL)
+        self.zone_type = zone_type
         self.color = color
         self.max_drones = max_drones
         self.drones = 0
-
-    def is_blocked(self) -> bool:
-        """Return True when drones cannot enter this zone."""
-        return self.zone_type == ZoneType.BLOCKED
-
-    def entry_cost(self) -> int:
-        """Return the number of turns needed to enter this zone."""
-        if self.zone_type == ZoneType.RESTRICTED:
-            return 2
-        return 1
 
     def has_space(self) -> bool:
         """Return True when another drone can occupy this zone."""

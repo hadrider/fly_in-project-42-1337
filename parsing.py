@@ -181,8 +181,9 @@ class DroneMap:
             self._error(num, "invalid connection declaration")
 
         if metadata:
-            if not metadata or "=" not in metadata:
-                self._error(num, "invalid connection metadata")
+            if metadata:
+                if "=" not in metadata:
+                    self._error(num, "invalid connection metadata")
             key, val = metadata.split("=", 1)
             if key != "max_link_capacity":
                 self._error(num, f"unknown connection metadata '{key}'")
