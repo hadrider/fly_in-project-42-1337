@@ -18,7 +18,7 @@ class Pathfinder:
         for name in self.drone_map.zones:
             self.adjacency[name] = []
 
-        for connection in self.drone_map.connections:#append the zones to eachother so each one is connected to another a to b and b to a 
+        for connection in self.drone_map.connections:
             self.adjacency[connection.zone_a].append(connection.zone_b)
             self.adjacency[connection.zone_b].append(connection.zone_a)
 
@@ -88,25 +88,39 @@ class Pathfinder:
         if distances[start] == float("inf"):
             raise ValueError(f"No path from '{start}' to '{end}'")
 
+        return self._collect_paths(start, end, distances, number_of_paths)
+
+    def _collect_paths(self, start: str, end: str,
+                       distances: dict[str, float], limit: int
+                       ) -> list[list[str]]:
+        """Collect cheapest paths using a simple index-based stack."""
         paths: list[list[str]] = []
+        path: list[str] = [start]
 
-        self._collect_paths(start, end, distances, [start], paths,
-                            number_of_paths)
+        stack: list[list] = [[start, 0]]
 
-        return paths
+        while stack:
+            if len(paths) >= limit:
+                break
 
-    def _collect_paths(self, current: str, end: str,
-                       distances: dict[str, float], path: list[str],
-                       paths: list[list[str]], limit: int) -> None:
-        """Collect cheapest paths recursively."""
-        if len(paths) >= limit:
-            return
+            current, index = stack[-1]
 
-        if current == end:
-            paths.append(path.copy())
-            return
+            if current == end:
+                paths.append(path.copy())
+                path.pop()
+                stack.pop()
+                continue
 
-        for neighbor in self.adjacency[current]:
+            neighbors = self.adjacency[current]
+
+            if index >= len(neighbors):
+                path.pop()
+                stack.pop()
+                continue
+
+            stack[-1][1] += 1
+            neighbor = neighbors[index]
+
             if neighbor in path:
                 continue
 
@@ -118,8 +132,6 @@ class Pathfinder:
                 continue
 
             path.append(neighbor)
-            self._collect_paths(neighbor, end, distances, path, paths, limit)
-            path.pop()
+            stack.append([neighbor, 0])
 
-            if len(paths) >= limit:
-                return
+        return paths

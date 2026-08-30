@@ -27,6 +27,8 @@ class PygameVisualizer:
             pygame.RESIZABLE,
         )
         pygame.display.set_caption("Fly-in")
+        self.original_image = pygame.image.load("image.png").convert_alpha()
+        self.image = pygame.transform.scale(self.original_image, (WIDTH, HEIGHT))
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 12, bold=True)
@@ -129,6 +131,7 @@ class PygameVisualizer:
     def _draw(self) -> None:
         """Draw the complete visualization."""
         self.screen.fill(self.background)
+        self.screen.blit(self.image, (0, 0))
 
         self._connections()
         self._zones()
@@ -163,7 +166,10 @@ class PygameVisualizer:
 
             elif event.type == pygame.VIDEORESIZE:
                 self.screen = pygame.display.set_mode(event.size,
-                                                      pygame.RESIZABLE)
+                                                    pygame.RESIZABLE)
+                self.image = pygame.transform.scale(
+                    self.original_image, event.size
+                )
 
     def _start_simulation(self) -> None:
         """Start or restart the simulation."""

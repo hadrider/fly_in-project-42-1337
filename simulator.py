@@ -128,6 +128,11 @@ class Simulator:
             drone.remaining_turns = 1
             return
 
+        self._arrive(drone)
+
+    def _arrive(self, drone: Drone) -> None:
+        """Arrive at the drone's destination."""
+
         drone.current_position = drone.destination
         drone.destination = None
         zone = self.drone_map.zones[drone.current_position]
@@ -195,9 +200,6 @@ class Simulator:
 
     def _end_name(self) -> str:
         """Return the end zone name."""
-        if self.drone_map.end_name is None:
-            raise ValueError("Map has no end zone")
-
         return self.drone_map.end_name
 
     def _print_turn(self, moves: list[tuple[int, str]]) -> None:
