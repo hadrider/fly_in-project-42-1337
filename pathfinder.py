@@ -93,45 +93,29 @@ class Pathfinder:
     def _collect_paths(self, start: str, end: str,
                        distances: dict[str, float], limit: int
                        ) -> list[list[str]]:
-        """Collect cheapest paths using a simple index-based stack."""
+        """Collect cheapest paths by exploring valid next steps."""
         paths: list[list[str]] = []
-        path: list[str] = [start]
+        stack: list[list[str]] = [[start]]
 
-        stack: list[list] = [[start, 0]]
-
-        while stack:
-            if len(paths) >= limit:
-                break
-
-            current, index = stack[-1]
+        while stack and len(paths) < limit:
+            path = stack.pop()
+            current = path[-1]
 
             if current == end:
-                paths.append(path.copy())
-                path.pop()
-                stack.pop()
+                paths.append(path)
                 continue
 
-            neighbors = self.adjacency[current]
+            for neighbor in self.adjacency[current]:
+                if neighbor in path:
+                    continue
 
-            if index >= len(neighbors):
-                path.pop()
-                stack.pop()
-                continue
+                cost = self._zone_cost(neighbor)
+                if cost == float("inf"):
+                    continue
 
-            stack[-1][1] += 1
-            neighbor = neighbors[index]
+                if cost + distances[neighbor] != distances[current]:
+                    continue
 
-            if neighbor in path:
-                continue
-
-            cost = self._zone_cost(neighbor)
-            if cost == float("inf"):
-                continue
-
-            if cost + distances[neighbor] != distances[current]:
-                continue
-
-            path.append(neighbor)
-            stack.append([neighbor, 0])
+                stack.append(path + [neighbor])
 
         return paths

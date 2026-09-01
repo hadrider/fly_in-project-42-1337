@@ -4,8 +4,8 @@ from parsing import DroneMap
 import pygame
 
 
-WIDTH = 1000
-HEIGHT = 900
+WIDTH = 1280
+HEIGHT = 720
 
 ZOOM_MIN = 0.4
 ZOOM_MAX = 3.0
@@ -26,9 +26,10 @@ class PygameVisualizer:
             (WIDTH, HEIGHT),
             pygame.RESIZABLE,
         )
-        pygame.display.set_caption("Fly-in")
+        pygame.display.set_caption("لعبة الطيارة حلال")
         self.original_image = pygame.image.load("image.png").convert_alpha()
-        self.image = pygame.transform.scale(self.original_image, (WIDTH, HEIGHT))
+        self.image = pygame.transform.scale(self.original_image,
+                                            (WIDTH, HEIGHT))
 
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 12, bold=True)
@@ -166,7 +167,7 @@ class PygameVisualizer:
 
             elif event.type == pygame.VIDEORESIZE:
                 self.screen = pygame.display.set_mode(event.size,
-                                                    pygame.RESIZABLE)
+                                                      pygame.RESIZABLE)
                 self.image = pygame.transform.scale(
                     self.original_image, event.size
                 )

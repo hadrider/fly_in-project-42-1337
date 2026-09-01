@@ -19,7 +19,7 @@ class DroneMap:
         self.start_name = ""
         self.end_name = ""
         self.nb_drones = 0
-        self._nb_drones_parsed = False  # false cuz we need to see nb of droens only apperad once
+        self._nb_drones_parsed = False
 
     def from_file(self, filename: str) -> "DroneMap":
         """Read a map file and return a validated DroneMap."""
@@ -27,9 +27,9 @@ class DroneMap:
             lines = f.read().splitlines()
 
         for i, raw in enumerate(lines, 1):
-            line = raw.split("#", 1)[0].strip()#strip the line fom comments an take what comes befor the #
+            line = raw.split("#", 1)[0].strip()
             if not line:
-                continue#skip empty lines 
+                continue
             self._parse_line(line, i)
 
         self._validate_map()
@@ -55,7 +55,7 @@ class DroneMap:
         try:
             count = int(line.split(":", 1)[1].strip())
         except ValueError:
-            self._error(num, "nb_drones must be an integer")#parse nub of drones line and take number chack if its a num or no 
+            self._error(num, "nb_drones must be an integer")
 
         if count <= 0:
             self._error(num, "nb_drones must be greater than zero")
