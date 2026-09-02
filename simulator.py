@@ -92,10 +92,7 @@ class Simulator:
         old_position = drone.current_position
         connection = self._find_connection(old_position, next_zone_name)
 
-        if old_position < next_zone_name:
-            link_key = (old_position, next_zone_name)
-        else:
-            link_key = (next_zone_name, old_position)
+        link_key = (old_position, next_zone_name)
 
         if link_key in self.link_usage:
             times_used = self.link_usage[link_key]
